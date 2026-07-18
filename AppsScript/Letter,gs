@@ -1,0 +1,165 @@
+/*******************************************************
+ * Letter.gs
+ * Government Letter & File Management System
+ * Part 1
+ *******************************************************/
+
+/**
+ * Save New Letter
+ */
+function saveLetter(data) {
+
+  try {
+
+    if (!data) {
+      return failure("No data received.");
+    }
+
+    if (isBlank(data.receiptDate))
+      return failure("Receipt Date is required.");
+
+    if (isBlank(data.sender))
+      return failure("Sender is required.");
+
+    if (isBlank(data.subject))
+      return failure("Subject is required.");
+
+    const sh = getSheet("Letter_Register");
+
+    const diaryNo = generateDiaryNumber();
+
+    sh.appendRow([
+      diaryNo,
+      data.receiptDate,
+      data.letterNo || "",
+      data.letterDate || "",
+      data.sender,
+      data.department || "",
+      data.subject,
+      data.category || "",
+      data.priority || "Medium",
+      data.tag || "",
+      "",
+      data.assignedTo || "",
+      data.dueDate || "",
+      "Pending",
+      data.remarks || "",
+      "",
+      getCurrentUser(),
+      now(),
+      "",
+      ""
+    ]);
+
+    writeAudit("INSERT", "Letter_Register", diaryNo);
+
+    return success("Letter saved successfully.", {
+      diaryNo: diaryNo
+    });
+
+  } catch (err) {
+
+    return failure(err.toString());
+
+  }
+
+}
+
+/**
+ * Get Letter By Diary Number
+ */
+function getLetter(diaryNo) {
+
+  const sh = getSheet("Letter_Register");
+
+  const data = sh.getDataRange().getValues();
+
+  if (data.length <= 1)
+    return failure("No records found.");
+
+  const headers = data[0];
+
+  for (let i = 1; i < data.length; i++) {
+
+    if (data[i][0] == diaryNo) {
+
+      let obj = {};
+
+      headers.forEach(function (h, index) {
+        obj[h] = data[i][index];
+      });
+
+      return success("Record found.", obj);
+
+    }
+
+  }
+
+  return failure("Diary Number not found.");
+
+}
+
+/**
+ * Get All Letters
+ */
+function getAllLetters() {
+
+  const sh = getSheet("Letter_Register");
+
+  const values = sh.getDataRange().getValues();
+
+  if (values.length <= 1)
+    return [];
+
+  let list = [];
+
+  const headers = values[0];
+
+  for (let i = 1; i < values.length; i++) {
+
+    let obj = {};
+
+    headers.forEach(function (h, c) {
+      obj[h] = values[i][c];
+    });
+
+    list.push(obj);
+
+  }
+
+  return list;
+
+}
+
+/**
+ * Count Pending Letters
+ */
+function getPendingLetterCount() {
+
+  const sh = getSheet("Letter_Register");
+
+  const values = sh.getRange(2, 14, sh.getLastRow() - 1, 1).getValues();
+
+  let count = 0;
+
+  values.forEach(function (r) {
+
+    if (r[0] == "Pending")
+      count++;
+
+  });
+
+  return count;
+
+}
+
+/**
+ * Count Total Letters
+ */
+function getTotalLetterCount() {
+
+  const sh = getSheet("Letter_Register");
+
+  return Math.max(0, sh.getLastRow() - 1);
+
+}
